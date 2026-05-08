@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pathfinder Shell</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="world-panel" aria-label="Filesystem map">
+        <div class="top-bar">
+          <div>
+            <p class="eyebrow">Pathfinder Shell</p>
+            <h1>Filesystem Rescue</h1>
+          </div>
+          <div class="status-pill" id="pathStatus">/home/student</div>
+        </div>
+        <canvas id="world" width="960" height="620" aria-label="Visual filesystem map"></canvas>
+      </section>
+
+      <aside class="terminal-panel">
+        <section class="mission-card" aria-label="Current mission">
+          <div class="mission-topline">
+            <span id="missionCount">Mission 1</span>
+            <span id="score">0 pts</span>
+          </div>
+          <h2 id="missionTitle">Loading mission</h2>
+          <p id="missionBrief"></p>
+          <div class="objective-list" id="objectives"></div>
+        </section>
+
+        <section class="terminal" aria-label="Command terminal">
+          <div class="terminal-output" id="terminalOutput"></div>
+          <form class="command-line" id="commandForm" autocomplete="off">
+            <span id="promptPath">/home/student</span>
+            <span>$</span>
+            <input
+              id="commandInput"
+              type="text"
+              spellcheck="false"
+              autocapitalize="none"
+              autocomplete="off"
+              aria-label="Type a Linux command"
+              autofocus
+            />
+          </form>
+        </section>
+      </aside>
+    </main>
+
+    <script src="./src/bundle.js"></script>
+  </body>
+</html>
