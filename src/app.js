@@ -46,16 +46,29 @@ form.addEventListener("submit", (event) => {
 });
 
 input.addEventListener("keydown", (event) => {
+  if (event.key === "Tab") {
+    event.preventDefault();
+    const completion = game.completeInput(input.value, input.selectionStart ?? input.value.length);
+    input.value = completion.value;
+    input.setSelectionRange(completion.cursor, completion.cursor);
+
+    if (!completion.changed && completion.matches.length > 1) {
+      write("hint", completion.matches.join("  "));
+    }
+  }
+
   if (event.key === "ArrowUp") {
     event.preventDefault();
     historyIndex = Math.max(0, historyIndex - 1);
     input.value = game.history[historyIndex] ?? "";
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 
   if (event.key === "ArrowDown") {
     event.preventDefault();
     historyIndex = Math.min(game.history.length, historyIndex + 1);
     input.value = game.history[historyIndex] ?? "";
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 });
 

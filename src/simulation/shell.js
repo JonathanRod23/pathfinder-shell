@@ -12,6 +12,7 @@ const cloneNode = (node) => {
 };
 
 const basename = (path) => path.split("/").filter(Boolean).at(-1) ?? "";
+const commands = ["cat", "cd", "clear", "cp", "help", "ls", "pwd"];
 
 export class ShellGame {
   constructor(fileSystem, missions) {
@@ -76,8 +77,60 @@ export class ShellGame {
       lines: [
         "Commands: pwd, ls, ls -a, cd <path>, cat <file>, cp <source> <destination>, clear",
         "Paths can be absolute (/home/student/labs) or relative (../notes).",
+        "Press Tab to autocomplete commands and paths.",
       ],
     };
+  }
+
+  completeInput(rawInput, cursorIndex = rawInput.length) {
+    const bounds = findTokenBounds(rawInput, cursorIndex);
+    const token = rawInput.slice(bounds.start, cursorIndex);
+    const command = tokenize(rawInput)[0] ?? "";
+    const isCommandToken = bounds.start === 0 && !rawInput.slice(0, bounds.start).trim();
+    const matches = isCommandToken
+      ? completeCommand(token)
+      : this.completePath(token, command, rawInput, bounds.start);
+
+    if (matches.length === 0) {
+      return { value: rawInput, cursor: cursorIndex, matches: [], changed: false };
+    }
+
+    const common = commonPrefix(matches);
+    const completion = matches.length === 1 ? matches[0] : common;
+
+    if (!completion || completion === token) {
+      return { value: rawInput, cursor: cursorIndex, matches, changed: false };
+    }
+
+    const suffix = matches.length === 1 && !completion.endsWith("/") ? " " : "";
+    const value =
+      rawInput.slice(0, bounds.start) + completion + suffix + rawInput.slice(bounds.end);
+    const cursor = bounds.start + completion.length + suffix.length;
+    return { value, cursor, matches, changed: true };
+  }
+
+  completePath(token, command, rawInput, tokenStart) {
+    const slashIndex = token.lastIndexOf("/");
+    const directoryPart = slashIndex >= 0 ? token.slice(0, slashIndex + 1) : "";
+    const partial = slashIndex >= 0 ? token.slice(slashIndex + 1) : token;
+    const parentExpression = directoryPart || ".";
+    const parent = this.resolve(parentExpression);
+
+    if (!parent.node || parent.node.type !== "dir") {
+      return [];
+    }
+
+    const argsBeforeToken = tokenize(rawInput.slice(0, tokenStart));
+    const commandName = argsBeforeToken[0] ?? command;
+    const wantsDirectory = commandName === "cd";
+    const includeHidden = partial.startsWith(".");
+
+    return Object.entries(parent.node.children)
+      .filter(([name]) => includeHidden || !name.startsWith("."))
+      .filter(([, node]) => !wantsDirectory || node.type === "dir")
+      .filter(([name]) => name.startsWith(partial))
+      .map(([name, node]) => `${directoryPart}${name}${node.type === "dir" ? "/" : ""}`)
+      .sort((a, b) => a.localeCompare(b));
   }
 
   ls(args) {
@@ -292,4 +345,36 @@ export class ShellGame {
 function tokenize(input) {
   const matches = input.match(/"[^"]+"|'[^']+'|\S+/g) ?? [];
   return matches.map((part) => part.replace(/^['"]|['"]$/g, ""));
+}
+
+function completeCommand(token) {
+  return commands.filter((command) => command.startsWith(token));
+}
+
+function commonPrefix(values) {
+  if (values.length === 0) {
+    return "";
+  }
+
+  let prefix = values[0];
+  for (const value of values.slice(1)) {
+    while (!value.startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+    }
+  }
+  return prefix;
+}
+
+function findTokenBounds(input, cursorIndex) {
+  let start = cursorIndex;
+  while (start > 0 && !/\s/.test(input[start - 1])) {
+    start -= 1;
+  }
+
+  let end = cursorIndex;
+  while (end < input.length && !/\s/.test(input[end])) {
+    end += 1;
+  }
+
+  return { start, end };
 }
